@@ -1,6 +1,6 @@
 # terra-incognita
 
-A voxel-based survival/exploration/city-building game
+Yet another voxel-based game about exploration, building, and survival.
 
 ## License
 
