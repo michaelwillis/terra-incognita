@@ -1,5 +1,5 @@
 (ns terra-incognita
-  (:use [terra-incognita.client lights camera input math color]
+  (:use [terra-incognita.client lights camera chunk-mesh input math color]
         [terra-incognita.world blocks core generate])
   (:import [com.jme3.app SimpleApplication]
            [com.jme3.material Material]
@@ -8,12 +8,6 @@
            [com.jme3.animation AnimControl LoopMode]))
 
 (def box (new Box 0.5 0.5 0.5))
-
-(defn render-chunk [chunk place-block]
-  (doseq [[index block] (map list (range (count chunk)) chunk)]
-    (if (not= block air)
-      (let [[x y z] (chunk-index-to-local-coords index)]
-        (place-block x y z block)))))
 
 (def app
   (proxy [SimpleApplication] []
@@ -28,7 +22,7 @@
                                (.setColor "Ambient" (color r g b))))
             block-materials {dirt (block-material 0.8 0.55 0.3)
                              stone (block-material 0.6 0.6 0.6)
-                             water (block-material 0.1 0.2 1.0)
+                             water (block-material 0.8 0.9 1.0)
                              grass (block-material 0.1 0.9 0.1)
                              sand (block-material 0.8 0.8 0.4)}
             world-size 16
@@ -80,8 +74,10 @@
                       (.setSpeed channel (+ 1.0 (rand)))
                       (.attachChild (.getRootNode this) clone)))])))
 
-        (let [world (time (generate-world world-size))]
-          (render-chunk ((world :chunks) [0 0 0]) place-block))
+        (let [world (time (generate-world world-size))
+              geo (build-chunk-geometry (world :chunks))]
+          (.setMaterial geo (block-materials water))
+          (.attachChild (.getRootNode this) geo))
 
         (setup-lights this)
         (let [rotate-cam (setup-camera this (/ world-size 2) (/ world-size 2))]
