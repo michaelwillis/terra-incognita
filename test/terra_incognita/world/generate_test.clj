@@ -9,6 +9,6 @@
              (* (/ 256 chunk-width)
                 (/ 256 chunk-depth))))
       (is (= (get-block world 0 0 0) water))
-      (is (= (get-block world 128 (/ chunk-height 2) 128) water))      
-      (is (= (get-block world 255 (dec chunk-height) 255) water)))))
+      (is (= (get-block world 128 128 (/ chunk-height 2)) water))      
+      (is (= (get-block world 255 255 (dec chunk-height)) water)))))
 

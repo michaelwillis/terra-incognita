@@ -20,22 +20,21 @@
             (put-chunk world chunk-key (filled-chunk water)))
           empty-world
           (for [x (range 0 size chunk-width)
-                z (range 0 size chunk-depth)]
-            (coords-to-chunk-key x 0 z))))
+                y (range 0 size chunk-depth)]
+            (coords-to-chunk-key x y 0))))
 
 (defn generate-world [size]
   (let [altitude (simplex :size size :scale 128 :amplitude 12 :average 4)]
-    (loop [x 0 z 0 world empty-world]
-      (if (= z size) world
+    (loop [x 0 y 0 world empty-world]
+      (if (= y size) world
           (let [new-x (if (= size x) 0 (inc x))
-                new-z (if (= 0 new-x) (inc z) z)
-                y (int (altitude x z))
+                new-y (if (= 0 new-x) (inc y) y)
+                z (int (altitude x y))
                 block (cond
-                       (< y 0) water
-                       (< y 1) sand
-                       (< y 12) grass
-                       (< y 14) dirt
+                       (< z 0) water
+                       (< z 1) sand
+                       (< z 12) grass
+                       (< z 14) dirt
                        :else stone)
-                y (if (< y 0) 0 y)]
-            (recur new-x new-z
-                   (put-block world x y z block)))))))
+                z (if (< z 0) 0 z)]
+            (recur new-x new-y (put-block world x y z block)))))))

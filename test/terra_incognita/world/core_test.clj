@@ -6,7 +6,7 @@
   (testing "filled-chunk should return a byte vector filled with the passed in byte value"
     (let [chunk (filled-chunk water)]
       (is (= (count chunk)
-             (* chunk-width chunk-height chunk-depth)))
+             (* chunk-width chunk-depth chunk-height)))
       (is (= (first chunk) water))
       (is (= (nth chunk 17) water))
       (is (= (last chunk) water)))))
@@ -18,7 +18,7 @@
     (is (= (coords-to-chunk-index 7 2 0) (+ 7 (* 2 chunk-width))))
     (is (= (coords-to-chunk-index 5 3 2) (+ 5
                                             (* 3 chunk-width)
-                                            (* 2 chunk-width chunk-height))))
+                                            (* 2 chunk-width chunk-depth))))
     (is (= (chunk-index-to-local-coords 0) [0 0 0]))
     (is (= (chunk-index-to-local-coords 1) [1 0 0]))
         (is (= (chunk-index-to-local-coords
