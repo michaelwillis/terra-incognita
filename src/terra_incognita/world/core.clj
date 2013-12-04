@@ -41,6 +41,10 @@
    Returns a value that can be used as a key to look up the corresponding chunk"
   (map bit-shift-right [x y z] [chunk-width-power chunk-depth-power chunk-height-power]))
 
+(defn chunk-key-to-world-coords [chunk-key]
+  (let [[x y z] chunk-key]
+    [(* x chunk-width) (* y chunk-depth) (* z chunk-height)]))
+
 (defn get-chunk [world chunk-key]
   (if-let [chunk (get-in world [:chunks chunk-key])]
     chunk (filled-chunk air)))

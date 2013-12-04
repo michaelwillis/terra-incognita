@@ -1,5 +1,5 @@
 (ns terra-incognita
-  (:use [terra-incognita.client lights camera chunk-mesh input math color]
+  (:use [terra-incognita.client camera chunk-mesh input math color]
         [terra-incognita.world blocks core generate])
   (:import [com.jme3.app SimpleApplication]
            [com.jme3.material Material]
@@ -7,25 +7,15 @@
            [com.jme3.asset BlenderKey]
            [com.jme3.animation AnimControl LoopMode]))
 
-(def box (new Box 0.5 0.5 0.5))
-
 (def app
   (proxy [SimpleApplication] []
     (simpleUpdate [seconds] nil)
     (simpleInitApp []
       (let [assets (.getAssetManager this)
-            block-material (fn [r g b]
-                             (doto (new Material assets "Common/MatDefs/Light/Lighting.j3md")
-                               (.setBoolean "UseMaterialColors" true)
-                               (.setTexture "DiffuseMap" (.loadTexture assets "texture.png"))
-                               (.setColor "Diffuse" (color r g b))
-                               (.setColor "Ambient" (color r g b))))
-            block-materials {dirt (block-material 0.8 0.55 0.3)
-                             stone (block-material 0.6 0.6 0.6)
-                             water (block-material 0.8 0.9 1.0)
-                             grass (block-material 0.1 0.9 0.1)
-                             sand (block-material 0.8 0.8 0.4)}
-            world-size 16
+            block-material (doto (new Material assets "Common/MatDefs/Misc/Unshaded.j3md")
+                             (.setTexture "ColorMap" (.loadTexture assets "texture.png"))
+                             (.setBoolean "VertexColor" true))
+            world-size 32
             nodes (->>
                    (for [x (range 0 (inc (/ world-size chunk-width)))
                          z (range 0 (inc (/ world-size chunk-depth)))]
@@ -33,17 +23,7 @@
                                (.setLocalTranslation (* chunk-width x) 0 (* chunk-depth z)))]
                        (.attachChild (.getRootNode this) n)
                        [[x z] n]))
-                   (into {}))
-            
-            place-block (fn [x y z block]
-                          (let [geo (doto (new Geometry (str "Block (" x "," y "," z ")") box)
-                                      (.setLocalTranslation (mod x chunk-width)
-                                                            y
-                                                            (mod z chunk-depth))
-                                      (.setMaterial (block-materials block)))
-                                node (nodes [(int (/ x chunk-width))
-                                             (int (/ z chunk-depth))])]
-                            (.attachChild node geo)))]
+                   (into {}))]
 
         (comment
           (let [guy (.loadAsset assets (new BlenderKey "guy.blend"))]
@@ -75,11 +55,13 @@
                       (.attachChild (.getRootNode this) clone)))])))
 
         (let [world (time (generate-world world-size))
-              geo (build-chunk-geometry (world :chunks))]
-          (.setMaterial geo (block-materials water))
-          (.attachChild (.getRootNode this) geo))
+              chunk-geos (time (build-chunk-geometries (world :chunks)))]
+          (doseq [[chunk-key geo] chunk-geos]
+            (let [[x y z] (chunk-key-to-world-coords chunk-key)]
+              (.setLocalTranslation geo x y z))
+            (.setMaterial geo terrain-material)
+            (.attachChild (.getRootNode this) geo)))
 
-        (setup-lights this)
         (let [rotate-cam (setup-camera this (/ world-size 2) (/ world-size 2))]
           (setup-input-handlers this rotate-cam))))))
 
