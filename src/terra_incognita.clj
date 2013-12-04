@@ -13,7 +13,7 @@
     (simpleInitApp []
       (let [assets (.getAssetManager this)
             block-material (doto (new Material assets "Common/MatDefs/Misc/Unshaded.j3md")
-                             (.setTexture "ColorMap" (.loadTexture assets "texture.png"))
+                             (.setTexture "ColorMap" (.loadTexture assets "textures/blocks.png"))
                              (.setBoolean "VertexColor" true))
             world-size 32
             nodes (->>
@@ -59,11 +59,23 @@
           (doseq [[chunk-key geo] chunk-geos]
             (let [[x y z] (chunk-key-to-world-coords chunk-key)]
               (.setLocalTranslation geo x y z))
-            (.setMaterial geo terrain-material)
+            (.setMaterial geo block-material)
             (.attachChild (.getRootNode this) geo)))
 
         (let [rotate-cam (setup-camera this (/ world-size 2) (/ world-size 2))]
           (setup-input-handlers this rotate-cam))))))
+
+(defn update-chunk-meshes [app world]
+  (let [assets (.getAssetManager app)
+        block-material (doto (new Material assets "Common/MatDefs/Misc/Unshaded.j3md")
+                         (.setTexture "ColorMap" (.loadTexture assets "textures/blocks.png"))
+                         (.setBoolean "VertexColor" true))
+        chunk-geos (time (build-chunk-geometries (world :chunks)))]
+    (doseq [[chunk-key geo] chunk-geos]
+      (let [[x y z] (chunk-key-to-world-coords chunk-key)]
+        (.setLocalTranslation geo x y z))
+      (.setMaterial geo block-material)
+      (.attachChild (.getRootNode app) geo))))
 
 (defn start [] (.start app))
 

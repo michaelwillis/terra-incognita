@@ -13,47 +13,51 @@
 ;;   |    \| 
 ;;   v0---v1 
 
-(defn build-triangles [vertex-count & args]
-  (map #(+ % (/ vertex-count 3)) args))
+(defn pick-texture [tex-coords x y]
+  (let [x1 (/ x 16)
+        y1 (/ y 2)
+        x2 (+ x1 (/ 1 16))
+        y2 (+ y1 (/ 1 2))]
+    (conj tex-coords x1 y1, x2 y1, x1 y2, x2 y2)))
+
+(defn build-triangles [triangles vertices & args]
+  (let [vertex-count (/ (count vertices) 3)
+        vertex-indices (map (partial + vertex-count) args)]
+    (apply (partial conj triangles) vertex-indices)))
 
 (defn build-top [[x y z] vertices tex-coords triangles vertex-colors]
   (let [[x1 y1 z1] (map inc [x y z])]
     [(conj vertices x y z1, x1 y z1, x y1 z1, x1 y1 z1)
-     (conj tex-coords 0 0, 1 0, 0 1, 1 1)
-     (apply (partial conj triangles)
-            (build-triangles (count vertices) 0 1 2, 1 3 2))
+     (pick-texture tex-coords 0 1)
+     (build-triangles triangles vertices 0 1 2, 1 3 2)
      (conj vertex-colors 1.0 1.0 1.0 1.0, 1.0 1.0 1.0 1.0, 1.0 1.0 1.0 1.0, 1.0 1.0 1.0 1.0)]))
 
 (defn build-north [[x y z] vertices tex-coords triangles vertex-colors]
   (let [[x1 y1 z1] (map inc [x y z])]
     [(conj vertices x1 y1 z, x y1 z, x1 y1 z1, x y1 z1)
-     (conj tex-coords 0 0, 1 0, 0 1, 1 1)
-     (apply (partial conj triangles)
-            (build-triangles (count vertices) 0 1 2, 1 3 2))
+     (pick-texture tex-coords 0 0)
+     (build-triangles triangles vertices 0 1 2, 1 3 2)
      (conj vertex-colors 0.4 0.4 0.4 0.4, 0.4 0.4 0.4 0.4, 0.4 0.4 0.4 0.4, 0.4 0.4 0.4 0.4)]))
 
 (defn build-east [[x y z] vertices tex-coords triangles vertex-colors]
   (let [[x1 y1 z1] (map inc [x y z])]
     [(conj vertices x1 y z, x1 y1 z, x1 y z1, x1 y1 z1)
-     (conj tex-coords 0 0, 1 0, 0 1, 1 1)
-     (apply (partial conj triangles)
-            (build-triangles (count vertices) 0 1 2, 1 3 2))
+     (pick-texture tex-coords 0 0)
+     (build-triangles triangles vertices 0 1 2, 1 3 2)
      (conj vertex-colors 0.7 0.7 0.7 0.7, 0.7 0.7 0.7 0.7, 0.7 0.7 0.7 0.7, 0.7 0.7 0.7 0.7)]))
 
 (defn build-south [[x y z] vertices tex-coords triangles vertex-colors]
   (let [[x1 y1 z1] (map inc [x y z])]
     [(conj vertices x y z, x1 y z, x y z1, x1 y z1)
-     (conj tex-coords 0 0, 1 0, 0 1, 1 1)
-     (apply (partial conj triangles)
-            (build-triangles (count vertices) 0 1 2, 1 3 2))
+     (pick-texture tex-coords 0 0)
+     (build-triangles triangles vertices 0 1 2, 1 3 2)
      (conj vertex-colors 0.85 0.85 0.85 0.85, 0.85 0.85 0.85 0.85, 0.85 0.85 0.85 0.85, 0.85 0.85 0.85 0.85)]))
 
 (defn build-west [[x y z] vertices tex-coords triangles vertex-colors]
   (let [[x1 y1 z1] (map inc [x y z])]
     [(conj vertices x y1 z, x y z, x y1 z1, x y z1)
-     (conj tex-coords 0 0, 1 0, 0 1, 1 1)
-     (apply (partial conj triangles)
-            (build-triangles (count vertices) 0 1 2, 1 3 2))
+     (pick-texture tex-coords 0 0)
+     (build-triangles triangles vertices 0 1 2, 1 3 2)
      (conj vertex-colors 0.55 0.55 0.55 0.55, 0.55 0.55 0.55 0.55, 0.55 0.55 0.55 0.55, 0.55 0.55 0.55 0.55)]))
 
 (defn build-block [[vertices tex-coords triangles vertex-colors] [chunk-index block]]
@@ -83,14 +87,18 @@
     (into-buffer (BufferUtils/createIntBuffer (count triangles)) triangles)
     (new Geometry "Chunk"
          (doto (new Mesh)
-           (.setBuffer VertexBuffer$Type/Position 3
-                       (into-buffer (BufferUtils/createFloatBuffer (count vertices)) vertices))
-           (.setBuffer VertexBuffer$Type/TexCoord 2
-                       (into-buffer (BufferUtils/createFloatBuffer (count tex-coords)) tex-coords))
-           (.setBuffer VertexBuffer$Type/Index 3
-                       (into-buffer (BufferUtils/createIntBuffer (count triangles)) triangles))
-           (.setBuffer VertexBuffer$Type/Color 4
-                       (into-buffer (BufferUtils/createFloatBuffer (count vertex-colors)) vertex-colors))
+           (.setBuffer VertexBuffer$Type/Position 3 (into-array Float/TYPE vertices))
+           (.setBuffer VertexBuffer$Type/TexCoord 2 (into-array Float/TYPE tex-coords))
+           (.setBuffer VertexBuffer$Type/Index 3 (into-array Integer/TYPE triangles))
+           (.setBuffer VertexBuffer$Type/Color 4 (into-array Float/TYPE vertex-colors))
+           ;; (.setBuffer VertexBuffer$Type/Position 3
+           ;;             (into-buffer (BufferUtils/createFloatBuffer (count vertices)) vertices))
+           ;; (.setBuffer VertexBuffer$Type/TexCoord 2
+           ;;             (into-buffer (BufferUtils/createFloatBuffer (count tex-coords)) tex-coords))
+           ;; (.setBuffer VertexBuffer$Type/Index 3
+           ;;             (into-buffer (BufferUtils/createIntBuffer (count triangles)) triangles))
+           ;; (.setBuffer VertexBuffer$Type/Color 4
+           ;;             (into-buffer (BufferUtils/createFloatBuffer (count vertex-colors)) vertex-colors))
            (.setStatic)
            (.updateBound)))))
 
