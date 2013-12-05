@@ -24,8 +24,15 @@
              (reset! mouse-state (if (.isPressed event) :rotate))))
          (onMouseMotionEvent [event]
            (if (= @mouse-state :rotate)
-             (let [b (-> (vec2 (.getX event) (.getY event))
-                         (.subtract center))
-                   a (.subtract b (vec2 (.getDX event) (.getDY event)))]
-               (rotate-cam (- (.getAngle a) (.getAngle b))))))
+             ;; calc movement relative to screen center
+             (let [x2 (- (.getX event) (.getX center))
+                   y2 (- (.getY event) (.getY center))
+                   x1 (- x2 (.getDX event))
+                   y1 (- y2 (.getDY event))
+                   spin (- (.getAngle (vec2 x2 y1))
+                           (.getAngle (vec2 x1 y1)))
+                   tilt (->> (.getY (resolution cam))
+                             (/ (.getDY event))
+                             (* Math/PI))]
+               (rotate-cam tilt spin))))
         (onTouchEvent       [event] nil))))))
