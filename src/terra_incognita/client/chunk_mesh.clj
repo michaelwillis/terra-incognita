@@ -13,50 +13,64 @@
 ;;   |    \| 
 ;;   v0---v1 
 
-(defn pick-texture [tex-coords x y]
+;; { block-type [top sides] ...}
+(def block-textures
+  {water [[1 14][1 14]]
+   grass [[0 15][0 14]]
+   dirt  [[2 15][2 15]]
+   stone [[3 15][3 14]]
+   sand  [[4 15][4 14]]})
+
+(defn pick-texture [tex-coords [x y]]
   (let [x1 (/ x 16)
         y1 (/ y 16)
         x2 (+ x1 (/ 1 16))
         y2 (+ y1 (/ 1 16))]
     (conj tex-coords x1 y1, x2 y1, x1 y2, x2 y2)))
 
+(defn top-texture [tex-coords block]
+  (pick-texture tex-coords (get-in block-textures [block 0])))
+
+(defn side-texture [tex-coords block]
+  (pick-texture tex-coords (get-in block-textures [block 1])))
+
 (defn build-triangles [triangles vertices & args]
   (let [vertex-count (/ (count vertices) 3)
         vertex-indices (map (partial + vertex-count) args)]
     (apply (partial conj triangles) vertex-indices)))
 
-(defn build-top [[x y z] vertices tex-coords triangles vertex-colors]
+(defn build-top [block [x y z] vertices tex-coords triangles vertex-colors]
   (let [[x1 y1 z1] (map inc [x y z])]
     [(conj vertices x y z1, x1 y z1, x y1 z1, x1 y1 z1)
-     (pick-texture tex-coords 0 15)
+     (top-texture tex-coords block)
      (build-triangles triangles vertices 0 1 2, 1 3 2)
      (conj vertex-colors 1.0 1.0 1.0 1.0, 1.0 1.0 1.0 1.0, 1.0 1.0 1.0 1.0, 1.0 1.0 1.0 1.0)]))
 
-(defn build-north [[x y z] vertices tex-coords triangles vertex-colors]
+(defn build-north [block [x y z] vertices tex-coords triangles vertex-colors]
   (let [[x1 y1 z1] (map inc [x y z])]
     [(conj vertices x1 y1 z, x y1 z, x1 y1 z1, x y1 z1)
-     (pick-texture tex-coords 0 14)
+     (side-texture tex-coords block)
      (build-triangles triangles vertices 0 1 2, 1 3 2)
      (conj vertex-colors 0.4 0.4 0.4 0.4, 0.4 0.4 0.4 0.4, 0.4 0.4 0.4 0.4, 0.4 0.4 0.4 0.4)]))
 
-(defn build-east [[x y z] vertices tex-coords triangles vertex-colors]
+(defn build-east [block [x y z] vertices tex-coords triangles vertex-colors]
   (let [[x1 y1 z1] (map inc [x y z])]
     [(conj vertices x1 y z, x1 y1 z, x1 y z1, x1 y1 z1)
-     (pick-texture tex-coords 0 14)
+     (side-texture tex-coords block)
      (build-triangles triangles vertices 0 1 2, 1 3 2)
      (conj vertex-colors 0.7 0.7 0.7 0.7, 0.7 0.7 0.7 0.7, 0.7 0.7 0.7 0.7, 0.7 0.7 0.7 0.7)]))
 
-(defn build-south [[x y z] vertices tex-coords triangles vertex-colors]
+(defn build-south [block [x y z] vertices tex-coords triangles vertex-colors]
   (let [[x1 y1 z1] (map inc [x y z])]
     [(conj vertices x y z, x1 y z, x y z1, x1 y z1)
-     (pick-texture tex-coords 0 14)
+     (side-texture tex-coords block)
      (build-triangles triangles vertices 0 1 2, 1 3 2)
      (conj vertex-colors 0.85 0.85 0.85 0.85, 0.85 0.85 0.85 0.85, 0.85 0.85 0.85 0.85, 0.85 0.85 0.85 0.85)]))
 
-(defn build-west [[x y z] vertices tex-coords triangles vertex-colors]
+(defn build-west [block [x y z] vertices tex-coords triangles vertex-colors]
   (let [[x1 y1 z1] (map inc [x y z])]
     [(conj vertices x y1 z, x y z, x y1 z1, x y z1)
-     (pick-texture tex-coords 0 14)
+     (side-texture tex-coords block)
      (build-triangles triangles vertices 0 1 2, 1 3 2)
      (conj vertex-colors 0.55 0.55 0.55 0.55, 0.55 0.55 0.55 0.55, 0.55 0.55 0.55 0.55, 0.55 0.55 0.55 0.55)]))
 
@@ -65,11 +79,11 @@
     [vertices tex-coords triangles vertex-colors]
     (let [[x y z] (chunk-index-to-local-coords chunk-index)]
       (->> [vertices tex-coords triangles vertex-colors]
-           (apply build-top [x y z])
-           (apply build-north [x y z])
-           (apply build-east [x y z])
-           (apply build-south [x y z])
-           (apply build-west [x y z])))))
+           (apply build-top block [x y z])
+           (apply build-north block [x y z])
+           (apply build-east block [x y z])
+           (apply build-south block [x y z])
+           (apply build-west block [x y z])))))
 
 (defn build-chunk-geometry [chunk]
   (let [empty-vertices      (vector-of :float)
@@ -80,7 +94,6 @@
         (reduce build-block [empty-vertices empty-tex-coords empty-triangles empty-vertex-colors]
                 (map-indexed vector chunk))]
 
-    (into-buffer (BufferUtils/createIntBuffer (count triangles)) triangles)
     (new Geometry "Chunk"
          (doto (new Mesh)
            (.setBuffer VertexBuffer$Type/Position 3 (into-array Float/TYPE vertices))

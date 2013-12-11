@@ -15,7 +15,7 @@
             block-material (doto (new Material assets "Common/MatDefs/Misc/Unshaded.j3md")
                              (.setTexture "ColorMap" (.loadTexture assets "textures/blocks.png"))
                              (.setBoolean "VertexColor" true))
-            world-size 32
+            world-size 256
             nodes (->>
                    (for [x (range 0 (inc (/ world-size chunk-width)))
                          z (range 0 (inc (/ world-size chunk-depth)))]
@@ -62,8 +62,8 @@
             (.setMaterial geo block-material)
             (.attachChild (.getRootNode this) geo)))
 
-        (let [rotate-cam (setup-camera this (/ world-size 2) (/ world-size 2))]
-          (setup-input-handlers this rotate-cam))))))
+        (setup-camera this (/ world-size 2) (/ world-size 2))
+        (setup-input-handlers this)))))
 
 (defn update-chunk-meshes [app world]
   (let [assets (.getAssetManager app)

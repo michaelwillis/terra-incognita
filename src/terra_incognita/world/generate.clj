@@ -24,7 +24,7 @@
             (coords-to-chunk-key x y 0))))
 
 (defn generate-world [size]
-  (let [altitude (simplex :size size :scale 128 :amplitude 12 :average 4)]
+  (let [altitude (simplex :size size :scale 512 :amplitude 64 :average 32)]
     (loop [x 0 y 0 world empty-world]
       (if (= y size) world
           (let [new-x (if (= size x) 0 (inc x))
@@ -32,9 +32,9 @@
                 z (int (altitude x y))
                 block (cond
                        (< z 0) water
-                       (< z 1) sand
-                       (< z 12) grass
-                       (< z 14) dirt
+                       (< z 4) sand
+                       (< z 64) grass
+                       (< z 96) dirt
                        :else stone)
                 z (if (< z 0) 0 z)]
             (recur new-x new-y (put-block world x y z block)))))))

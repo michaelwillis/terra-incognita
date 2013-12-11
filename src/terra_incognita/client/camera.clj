@@ -6,18 +6,44 @@
 
 (defn cam [app] (.getCamera app))
 
-(defn resolution [cam]
-  (vec2 (.getWidth cam) (.getHeight cam)))
+(defn screen-width [app]
+  (.getWidth (cam app)))
 
-(defn center [cam]
-  (.divide (resolution cam) 2))
+(defn screen-height [app]
+  (.getHeight (cam app)))
 
+(def focus-x (atom 0))
+(def focus-y (atom 0))
 (def min-tilt (* Math/PI 0.1))
 (def max-tilt (* Math/PI 0.4))
 (def tilt (atom min-tilt))
 (def spin (atom (/ Math/PI 4)))
 (def cam-height 512)
 (def zoom 0.02)
+
+(defn update-cam! [app]
+  (doto (cam app)
+    (.setLocation
+     (-> (new Quaternion)
+         (.fromAngles @tilt 0 @spin)
+         (.mult (vec3 0 0 cam-height))
+         (.add @focus-x @focus-y 0)))
+    (.lookAt (vec3 @focus-x @focus-y 0) (vec3 0 0 1))))
+
+(defn rotate-cam [app tilt-delta spin-delta]
+  (swap! tilt #(-> % (+ tilt-delta) (max min-tilt) (min max-tilt)))
+  (swap! spin #(- % spin-delta))
+  (update-cam! app))
+
+(defn move-cam-global [app x y]
+  (reset! focus-x x)
+  (reset! focus-y y)
+  (update-cam! app))
+
+(defn move-cam-local [app x y]
+  (swap! focus-x (partial + x))
+  (swap! focus-y (partial + y))
+  (update-cam! app))
 
 (defn setup-camera [app x y]
   (let [sm (.getStateManager app)]
@@ -28,15 +54,4 @@
     (.setFrustumLeft (/ (.getFrustumLeft (cam app)) zoom))
     (.setFrustumRight (/ (.getFrustumRight (cam app)) zoom))
     (.setFrustumTop (/ (.getFrustumTop (cam app)) zoom)))
-  (letfn [(rotate-cam [tilt-delta spin-delta]
-            (swap! tilt #(-> % (+ tilt-delta) (max min-tilt) (min max-tilt)))
-            (swap! spin #(- % spin-delta))
-            (doto (cam app)
-              (.setLocation
-               (-> (new Quaternion)
-                   (.fromAngles @tilt 0 @spin)
-                   (.mult (vec3 0 0 cam-height))
-                   (.add x y 0)))
-              (.lookAt (vec3 x y 0) (vec3 0 0 1))))]
-    (rotate-cam (/ Math/PI 8) 0)
-    rotate-cam))
+  (move-cam-global app x y))
