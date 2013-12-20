@@ -1,25 +1,18 @@
 (ns terra-incognita.client.input
-  (:use [terra-incognita.client camera math])
+  (:use [terra-incognita.client camera jme])
   (:import [com.jme3.input KeyInput MouseInput RawInputListener]
-           [com.jme3.input.controls ActionListener InputListener KeyTrigger MouseAxisTrigger]
-           [com.jme3.math Vector2f]))
-
-(def mouse-state (atom nil))
+           [com.jme3.input.controls ActionListener InputListener KeyTrigger MouseAxisTrigger]))
 
 (defn setup-key-bindings [app]
-  (let [input (.getInputManager app)
-        key-bindings {KeyInput/KEY_UP #(move-cam-local %1 0 (* 10 %2))
-                      KeyInput/KEY_DOWN #(move-cam-local %1 0 (- (* 10 %2)))
-                      KeyInput/KEY_LEFT #(move-cam-local %1 (- (* 10 %2)) 0)
-                      KeyInput/KEY_RIGHT #(move-cam-local %1 (* 10 %2) 0)}]
+  (let [key-bindings {KeyInput/KEY_UP #(move-cam-local %1 0 (* 320 %2))
+                      KeyInput/KEY_DOWN #(move-cam-local %1 0 (- (* 320 %2)))
+                      KeyInput/KEY_LEFT #(move-cam-local %1 (- (* 320 %2)) 0)
+                      KeyInput/KEY_RIGHT #(move-cam-local %1 (* 320 %2) 0)}]
     (doseq [[k f] key-bindings]
       (let [mapping (str (gensym))
-            listener (proxy [ActionListener] []
-                       (onAction [_ _ t]
-                         (prn [mapping t])
-                         (f app t)))]
-        (.addMapping input mapping (into-array [(new KeyTrigger k)]))
-        (.addListener input listener (into-array [mapping]))))))
+            listener (proxy [ActionListener] [] (onAction [_ _ t] (f app t)))]
+        (.addMapping (input app) mapping (into-array [(new KeyTrigger k)]))
+        (.addListener (input app) listener (into-array [mapping]))))))
 
 (defn handle-rotate-event [app event]
   ;; calc movement relative to screen center
@@ -34,9 +27,10 @@
                   (* Math/PI))]
     (rotate-cam app tilt spin)))
 
-(defn setup-input-handlers [app]
-  (doto (.getInputManager app)
+(defn setup-raw-input-listener [app]
+  (let [mouse-state (atom nil)]
     (.addRawInputListener
+     (input app)
      (proxy [RawInputListener] []
        (beginInput [] nil)
        (endInput   [] nil)
@@ -50,3 +44,8 @@
          (if (= @mouse-state :rotate)
            (handle-rotate-event app event)))
        (onTouchEvent [event] nil)))))
+
+(defn setup-input [app]
+  (doto app
+    (setup-key-bindings)
+    (setup-raw-input-listener)))

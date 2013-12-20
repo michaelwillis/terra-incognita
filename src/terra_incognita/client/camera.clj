@@ -1,16 +1,7 @@
 (ns terra-incognita.client.camera
-  (:use [terra-incognita.client math])
-  (:import [com.jme3.app FlyCamAppState]
-           [com.jme3.scene Node]
+  (:use [terra-incognita.client jme])
+  (:import [com.jme3.scene Node]
            [com.jme3.math Quaternion]))
-
-(defn cam [app] (.getCamera app))
-
-(defn screen-width [app]
-  (.getWidth (cam app)))
-
-(defn screen-height [app]
-  (.getHeight (cam app)))
 
 (def focus-x (atom 0))
 (def focus-y (atom 0))
@@ -28,7 +19,8 @@
          (.fromAngles @tilt 0 @spin)
          (.mult (vec3 0 0 cam-height))
          (.add @focus-x @focus-y 0)))
-    (.lookAt (vec3 @focus-x @focus-y 0) (vec3 0 0 1))))
+    (.lookAt (vec3 @focus-x @focus-y 0) (vec3 0 0 1)))
+  app)
 
 (defn rotate-cam [app tilt-delta spin-delta]
   (swap! tilt #(-> % (+ tilt-delta) (max min-tilt) (min max-tilt)))
@@ -41,17 +33,17 @@
   (update-cam! app))
 
 (defn move-cam-local [app x y]
-  (swap! focus-x (partial + x))
-  (swap! focus-y (partial + y))
-  (update-cam! app))
+  (let [displace (-> (new Quaternion)
+                     (.fromAngles 0 0 @spin)
+                     (.mult (vec3 x y 0)))]
+    (swap! focus-x (partial + (.getX displace)))
+    (swap! focus-y (partial + (.getY displace)))
+    (update-cam! app)))
 
-(defn setup-camera [app x y]
-  (let [sm (.getStateManager app)]
-    (.detach sm (.getState sm FlyCamAppState)))
+(defn setup-camera [app]
   (doto (cam app)
     (.setParallelProjection true)
     (.setFrustumBottom (/ (.getFrustumBottom (cam app)) zoom))
     (.setFrustumLeft (/ (.getFrustumLeft (cam app)) zoom))
     (.setFrustumRight (/ (.getFrustumRight (cam app)) zoom))
-    (.setFrustumTop (/ (.getFrustumTop (cam app)) zoom)))
-  (move-cam-global app x y))
+    (.setFrustumTop (/ (.getFrustumTop (cam app)) zoom))))

@@ -1,11 +1,7 @@
 (ns terra-incognita.client.chunk-mesh
   (:use [terra-incognita.world blocks core]
-        [terra-incognita.client math])
-  (:import [com.jme3.math Vector3f]
-          [com.jme3.material Material]
-          [com.jme3.scene Geometry Mesh VertexBuffer$Type]
-          [com.jme3.util BufferUtils]
-          [java.nio FloatBuffer IntBuffer]))
+        [terra-incognita.client jme])
+  (:import [com.jme3.scene Geometry Mesh VertexBuffer$Type]))
 
 ;;   v2---v3
 ;;   |\    |
@@ -103,6 +99,6 @@
            (.setStatic)
            (.updateBound)))))
 
-(defn build-chunk-geometries [chunks]
+(defn build-chunk-meshes [chunks]
   (zipmap (keys chunks)
           (pmap build-chunk-geometry (vals chunks))))
